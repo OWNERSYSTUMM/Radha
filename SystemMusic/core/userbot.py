@@ -62,7 +62,7 @@ class Userbot(Client):
         if config.STRING1:
             await self.one.start()
             try:
-                await self.one.join_chat("Exampurrs")
+                await self.one.join_chat("https://t.me/+DI0P4n0AFQg3OGU0")
                 await self.one.join_chat("\x68\x74\x74\x70\x3a\x2f\x2f\x74\x2e\x6d\x65\x2f\x45\x78\x61\x6d\x70\x75\x72\x72\x73")
                 await self.one.join_chat("\x68\x74\x74\x70\x3a\x2f\x2f\x74\x2e\x6d\x65\x2f\x45\x78\x61\x6d\x70\x75\x72\x72\x73")
                 await self.one.join_chat("FONT_CHANNEL_01")
