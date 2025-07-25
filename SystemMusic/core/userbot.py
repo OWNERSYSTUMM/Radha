@@ -20,35 +20,35 @@ assistantids = []
 class Userbot(Client):
     def __init__(self):
         self.one = Client(
-            name="SHUKLAAss1",
+            name="SYSTEMAss1",
             api_id=config.API_ID,
             api_hash=config.API_HASH,
             session_string=str(config.STRING1),
             no_updates=True,
         )
         self.two = Client(
-            name="SHUKLAAss2",
+            name="SYSTEMAss2",
             api_id=config.API_ID,
             api_hash=config.API_HASH,
             session_string=str(config.STRING2),
             no_updates=True,
         )
         self.three = Client(
-            name="SHUKLAAss3",
+            name="SYSTEMAss3",
             api_id=config.API_ID,
             api_hash=config.API_HASH,
             session_string=str(config.STRING3),
             no_updates=True,
         )
         self.four = Client(
-            name="SHUKLAAss4",
+            name="SYSTEMAss4",
             api_id=config.API_ID,
             api_hash=config.API_HASH,
             session_string=str(config.STRING4),
             no_updates=True,
         )
         self.five = Client(
-            name="SHUKLAAss5",
+            name="SYSTEMAss5",
             api_id=config.API_ID,
             api_hash=config.API_HASH,
             session_string=str(config.STRING5),
@@ -62,7 +62,7 @@ class Userbot(Client):
         if config.STRING1:
             await self.one.start()
             try:
-                await self.one.join_chat("Repo_fix")
+                await self.one.join_chat("Exampurrs")
                 await self.one.join_chat("\x68\x74\x74\x70\x3a\x2f\x2f\x74\x2e\x6d\x65\x2f\x45\x78\x61\x6d\x70\x75\x72\x72\x73")
                 await self.one.join_chat("\x68\x74\x74\x70\x3a\x2f\x2f\x74\x2e\x6d\x65\x2f\x45\x78\x61\x6d\x70\x75\x72\x72\x73")
                 await self.one.join_chat("FONT_CHANNEL_01")
