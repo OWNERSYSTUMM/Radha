@@ -20,14 +20,19 @@ ASSUSERNAME = getenv("ASSUSERNAME", "Exampurrs")
 # MongoDB
 MONGO_DB_URI = getenv("MONGO_DB_URI", None)
 
-# Vars For API End Pont.
-YTPROXY_URL = getenv("YTPROXY_URL", 'https://tgapi.xbitcode.com') ## E.G https://yt.okflix.
-YT_API_KEY = getenv("YT_API_KEY" , "xbit_BHNV3FZ1MIMUSQADIBVQ7G" ) ## get your secret key from Deep
+# API URL - here
+API_URL = getenv("API_URL", "https://tgmusic.fallenapi.fun")
+
+# API KEY - here
+API_KEY = getenv("API_KEY", "ef4e80_qtqagWb9uWwn07HeeUsOFNeTqU2RN_Ej")
+
+# For - downloads
+DOWNLOADS_DIR = "downloads"
 
 # Limits and IDs
 DURATION_LIMIT_MIN = int(getenv("DURATION_LIMIT", 17000))
 LOGGER_ID = int(getenv("LOGGER_ID", -1002018556839))
-OWNER_ID = int(getenv("OWNER_ID", 6762113050))
+OWNER_ID = int(getenv("OWNER_ID", 7548614955))
 
 # Heroku
 HEROKU_APP_NAME = getenv("HEROKU_APP_NAME")
