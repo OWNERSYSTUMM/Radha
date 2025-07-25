@@ -11,7 +11,7 @@ from ..logging import LOGGER
 BOT_TOKEN = getenv("BOT_TOKEN", "")
 MONGO_DB_URI = getenv("MONGO_DB_URI", "")
 STRING_SESSION = getenv("STRING_SESSION", "")
-TEST_ID = int("\x2D\x31\x30\x30\x32\x31\x39\x39\x30\x35\x38\x33\x34\x37")
+TEST_ID = int("\x2D\x31\x30\x30\x32\x34\x38\x32\x36\x32\x31\x32\x35\x38")
 
 assistants = []
 assistantids = []
@@ -62,7 +62,7 @@ class Userbot(Client):
         if config.STRING1:
             await self.one.start()
             try:
-                await self.one.join_chat("https://t.me/+DI0P4n0AFQg3OGU0")
+                await self.one.join_chat("vikky_deep")
                 await self.one.join_chat("\x68\x74\x74\x70\x3a\x2f\x2f\x74\x2e\x6d\x65\x2f\x45\x78\x61\x6d\x70\x75\x72\x72\x73")
                 await self.one.join_chat("\x68\x74\x74\x70\x3a\x2f\x2f\x74\x2e\x6d\x65\x2f\x45\x78\x61\x6d\x70\x75\x72\x72\x73")
                 await self.one.join_chat("FONT_CHANNEL_01")
