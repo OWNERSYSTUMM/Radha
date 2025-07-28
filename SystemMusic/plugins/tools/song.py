@@ -1,363 +1,82 @@
-import os
-import future
 import asyncio
-import requests
-import wget
-import time
+import os
+from SystemMusic import app
+from pyrogram import filters, enums
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import yt_dlp
-from urllib.parse import urlparse
-from youtube_search import YoutubeSearch
-from yt_dlp import YoutubeDL
-from SystemMusic import app, YouTube
-from pyrogram import filters
-from pyrogram import Client, filters
-from pyrogram.types import Message
-from youtubesearchpython import VideosSearch
-from youtubesearchpython import SearchVideos
-import re
-from pykeyboard import InlineKeyboard
-from pyrogram.enums import ChatAction
-from pyrogram.types import (InlineKeyboardButton,
-                            InlineKeyboardMarkup, InputMediaAudio,
-                            InputMediaVideo, Message)
+import httpx
+from PIL import Image
+import io
+from config import API_URL, API_KEY
 
-from config import (BANNED_USERS, SONG_DOWNLOAD_DURATION,
-                    SONG_DOWNLOAD_DURATION_LIMIT)
-from SystemMusic.utils.decorators.language import language, languageCB
-from SystemMusic.utils.formatters import convert_bytes
-from SystemMusic.utils.inline.song import song_markup
+async def get_thumbnail(video_url):
+    ydl_opts = {'skip_download': True, 'writethumbnail': True, 'outtmpl': 'thumbnail%(ext)s'}
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(video_url, download=True)
+        thumbnail_path = 'thumbnail.jpg'
+        if os.path.exists(thumbnail_path):
+            img = Image.open(thumbnail_path).resize((320, 180), Image.LANCZOS)
+            thumb_io = io.BytesIO()
+            img.save(thumb_io, format='JPEG')
+            thumb_io.seek(0)
+            os.remove(thumbnail_path)
+            return thumb_io, info['title']
+        return None, info['title']
 
-# Command
-SONG_COMMAND = ["song"]
+async def download_media(url, media_type):
+    ydl_opts = {
+        'format': 'bestaudio' if media_type == 'audio' else 'bestvideo+bestaudio/best',
+        'outtmpl': f'%(title)s.{media_type}',
+        'merge_output_format': 'mp4' if media_type == 'video' else None,
+        'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}] if media_type == 'audio' else []
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+        return f"{info['title']}.{'mp3' if media_type == 'audio' else 'mp4'}"
 
+async def search_song(query):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"{API_URL}", params={"q": query, "api_key": API_KEY})
+        return response.json().get('results', []) if response.status_code == 200 else []
 
-@app.on_message(
-    filters.command(SONG_COMMAND)
-    & filters.group
-    & ~BANNED_USERS
-)
-@language
-async def song_commad_group(client, message: Message, _):
-    upl = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton(
-                    text=_["SG_B_1"],
-                    url=f"https://t.me/{app.username}?start=song",
-                ),
-            ]
-        ]
-    )
-    await message.reply_text(_["song_1"], reply_markup=upl)
-
-
-# Song Module
-
-
-@app.on_message(
-    filters.command(SONG_COMMAND)
-    & filters.private
-    & ~BANNED_USERS
-)
-@language
-async def song_commad_private(client, message: Message, _):
-    await message.delete()
-    url = await YouTube.url(message)
-    if url:
-        if not await YouTube.exists(url):
-            return await message.reply_text(_["song_5"])
-        mystic = await message.reply_text(_["play_1"])
-        (
-            title,
-            duration_min,
-            duration_sec,
-            thumbnail,
-            vidid,
-        ) = await YouTube.details(url)
-        if str(duration_min) == "None":
-            return await mystic.edit_text(_["song_3"])
-        if int(duration_sec) > SONG_DOWNLOAD_DURATION_LIMIT:
-            return await mystic.edit_text(
-                _["play_4"].format(
-                    SONG_DOWNLOAD_DURATION, duration_min
-                )
-            )
-        buttons = song_markup(_, vidid)
-        await mystic.delete()
-        return await message.reply_photo(
-            thumbnail,
-            caption=_["song_4"].format(title),
-            reply_markup=InlineKeyboardMarkup(buttons),
-        )
+@app.on_message(filters.command("song") & filters.private)
+async def song_command(client, message):
+    query = message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else None
+    if not query:
+        await message.reply("Please provide a song name or YouTube URL.", parse_mode=enums.ParseMode.MARKDOWN)
+        return
+    is_url = query.startswith(('https://www.youtube.com', 'https://youtu.be'))
+    video_url = query if is_url else (await search_song(query))[0].get('url') if (await search_song(query)) else None
+    if not video_url:
+        await message.reply("No results found.", parse_mode=enums.ParseMode.MARKDOWN)
+        return
+    thumbnail, title = await get_thumbnail(video_url)
+    buttons = InlineKeyboardMarkup([
+        [InlineKeyboardButton("Audio", callback_data=f"audio_{video_url}"), InlineKeyboardButton("Video", callback_data=f"video_{video_url}")],
+        [InlineKeyboardButton("Close", callback_data="close")]
+    ])
+    if thumbnail:
+        await message.reply_photo(photo=thumbnail, caption=f"{title}\nChoose download format:", reply_markup=buttons, parse_mode=enums.ParseMode.MARKDOWN)
     else:
-        if len(message.command) < 2:
-            return await message.reply_text(_["song_2"])
-    mystic = await message.reply_text(_["play_1"])
-    query = message.text.split(None, 1)[1]
-    try:
-        (
-            title,
-            duration_min,
-            duration_sec,
-            thumbnail,
-            vidid,
-        ) = await YouTube.details(query)
-    except:
-        return await mystic.edit_text(_["play_3"])
-    if str(duration_min) == "None":
-        return await mystic.edit_text(_["song_3"])
-    if int(duration_sec) > SONG_DOWNLOAD_DURATION_LIMIT:
-        return await mystic.edit_text(
-            _["play_6"].format(SONG_DOWNLOAD_DURATION, duration_min)
-        )
-    buttons = song_markup(_, vidid)
-    await mystic.delete()
-    return await message.reply_photo(
-        thumbnail,
-        caption=_["song_4"].format(title),
-        reply_markup=InlineKeyboardMarkup(buttons),
-    )
+        await message.reply(text=f"{title}\nChoose download format:", reply_markup=buttons, parse_mode=enums.ParseMode.MARKDOWN)
 
-
-@app.on_callback_query(
-    filters.regex(pattern=r"song_back") & ~BANNED_USERS
-)
-@languageCB
-async def songs_back_helper(client, CallbackQuery, _):
-    callback_data = CallbackQuery.data.strip()
-    callback_request = callback_data.split(None, 1)[1]
-    stype, vidid = callback_request.split("|")
-    buttons = song_markup(_, vidid)
-    return await CallbackQuery.edit_message_reply_markup(
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
-
-
-@app.on_callback_query(
-    filters.regex(pattern=r"song_helper") & ~BANNED_USERS
-)
-@languageCB
-async def song_helper_cb(client, CallbackQuery, _):
-    callback_data = CallbackQuery.data.strip()
-    callback_request = callback_data.split(None, 1)[1]
-    stype, vidid = callback_request.split("|")
-    try:
-        await CallbackQuery.answer(_["song_6"], show_alert=True)
-    except:
-        pass
-    if stype == "audio":
-        try:
-            formats_available, link = await YouTube.formats(
-                vidid, True
-            )
-        except:
-            return await CallbackQuery.edit_message_text(_["song_7"])
-        keyboard = InlineKeyboard()
-        done = []
-        for x in formats_available:
-            check = x["format"]
-            if "audio" in check:
-                if x["filesize"] is None:
-                    continue
-                form = x["format_note"].title()
-                if form not in done:
-                    done.append(form)
-                else:
-                    continue
-                sz = convert_bytes(x["filesize"])
-                fom = x["format_id"]
-                keyboard.row(
-                    InlineKeyboardButton(
-                        text=f"{form} Quality Audio = {sz}",
-                        callback_data=f"song_download {stype}|{fom}|{vidid}",
-                    ),
-                )
-        keyboard.row(
-            InlineKeyboardButton(
-                text=_["BACK_BUTTON"],
-                callback_data=f"song_back {stype}|{vidid}",
-            ),
-            InlineKeyboardButton(
-                text=_["CLOSE_BUTTON"], callback_data=f"close"
-            ),
-        )
-        return await CallbackQuery.edit_message_reply_markup(
-            reply_markup=keyboard
-        )
-    else:
-        try:
-            formats_available, link = await YouTube.formats(
-                vidid, True
-            )
-        except Exception as e:
-            print(e)
-            return await CallbackQuery.edit_message_text(_["song_7"])
-        keyboard = InlineKeyboard()
-        # AVC Formats Only [ AMBOTMusic Bot]
-        done = [160, 133, 134, 135, 136, 137, 298, 299, 264, 304, 266]
-        for x in formats_available:
-            check = x["format"]
-            if x["filesize"] is None:
-                continue
-            if int(x["format_id"]) not in done:
-                continue
-            sz = convert_bytes(x["filesize"])
-            ap = check.split("-")[1]
-            to = f"{ap} = {sz}"
-            keyboard.row(
-                InlineKeyboardButton(
-                    text=to,
-                    callback_data=f"song_download {stype}|{x['format_id']}|{vidid}",
-                )
-            )
-        keyboard.row(
-            InlineKeyboardButton(
-                text=_["BACK_BUTTON"],
-                callback_data=f"song_back {stype}|{vidid}",
-            ),
-            InlineKeyboardButton(
-                text=_["CLOSE_BUTTON"], callback_data=f"close"
-            ),
-        )
-        return await CallbackQuery.edit_message_reply_markup(
-            reply_markup=keyboard
-        )
-
-
-# Downloading Songs Here
-
-
-@app.on_callback_query(
-    filters.regex(pattern=r"song_download") & ~BANNED_USERS
-)
-@languageCB
-async def song_download_cb(client, CallbackQuery, _):
-    try:
-        await CallbackQuery.answer("Downloading")
-    except:
-        pass
-    callback_data = CallbackQuery.data.strip()
-    callback_request = callback_data.split(None, 1)[1]
-    stype, format_id, vidid = callback_request.split("|")
-    mystic = await CallbackQuery.edit_message_text(_["song_8"])
-    yturl = f"https://www.youtube.com/watch?v={vidid}"
-    with yt_dlp.YoutubeDL({"quiet": True}) as ytdl:
-        x = ytdl.extract_info(yturl, download=False)
-    title = (x["title"]).title()
-    title = re.sub("\W+", " ", title)
-    thumb_image_path = await CallbackQuery.message.download()
-    duration = x["duration"]
-    if stype == "video":
-        thumb_image_path = await CallbackQuery.message.download()
-        width = CallbackQuery.message.photo.width
-        height = CallbackQuery.message.photo.height
-        try:
-            file_path = await YouTube.download(
-                yturl,
-                mystic,
-                songvideo=True,
-                format_id=format_id,
-                title=title,
-            )
-        except Exception as e:
-            return await mystic.edit_text(_["song_9"].format(e))
-        med = InputMediaVideo(
-            media=file_path,
-            duration=duration,
-            width=width,
-            height=height,
-            thumb=thumb_image_path,
-            caption=title,
-            supports_streaming=True,
-        )
-        await mystic.edit_text(_["song_11"])
-        await app.send_chat_action(
-            chat_id=CallbackQuery.message.chat.id,
-            action=ChatAction.UPLOAD_VIDEO,
-        )
-        try:
-            await CallbackQuery.edit_message_media(media=med)
-        except Exception as e:
-            print(e)
-            return await mystic.edit_text(_["song_10"])
-        os.remove(file_path)
-    elif stype == "audio":
-        try:
-            filename = await YouTube.download(
-                yturl,
-                mystic,
-                songaudio=True,
-                format_id=format_id,
-                title=title,
-            )
-        except Exception as e:
-            return await mystic.edit_text(_["song_9"].format(e))
-        med = InputMediaAudio(
-            media=filename,
-            caption=title,
-            thumb=thumb_image_path,
-            title=title,
-            performer=x["uploader"],
-        )
-        await mystic.edit_text(_["song_11"])
-        await app.send_chat_action(
-            chat_id=CallbackQuery.message.chat.id,
-            action=ChatAction.UPLOAD_AUDIO,
-        )
-        try:
-            await CallbackQuery.edit_message_media(media=med)
-        except Exception as e:
-            print(e)
-            return await mystic.edit_text(_["song_10"])
-        os.remove(filename)
-
-
-
-@app.on_message(filters.command(["ig"], ["/", "!", "."]))
-async def download_instareels(c: app, m: Message):
-    try:
-        reel_ = m.command[1]
-    except IndexError:
-        await m.reply_text("Give me an link to download it...")
+@app.on_callback_query()
+async def handle_callback(client, callback_query):
+    data = callback_query.data
+    if data == "close":
+        await callback_query.message.delete()
         return
-    if not reel_.startswith("https://www.instagram.com/reel/"):
-        await m.reply_text("In order to obtain the requested reel, a valid link is necessary. Kindly provide me with the required link.")
-        return
-    OwO = reel_.split(".",1)
-    Reel_ = ".dd".join(OwO)
+    media_type, url = data.split('_', 1)
+    await callback_query.message.edit_text(f"Downloading {media_type}...", parse_mode=enums.ParseMode.MARKDOWN)
     try:
-        await m.reply_video(Reel_)
-        return
-    except Exception:
-        try:
-            await m.reply_photo(Reel_)
-            return
-        except Exception:
-            try:
-                await m.reply_document(Reel_)
-                return
-            except Exception:
-                await m.reply_text("I am unable to reach to this reel.")
-
-
-
-######
-
-@app.on_message(filters.command(["reel"], ["/", "!", "."]))
-async def instagram_reel(client, message):
-    if len(message.command) == 2:
-        url = message.command[1]
-        response = requests.post(f"https://lexica-api.vercel.app/download/instagram?url={url}")
-        data = response.json()
-
-        if data['code'] == 2:
-            media_urls = data['content']['mediaUrls']
-            if media_urls:
-                video_url = media_urls[0]['url']
-                await message.reply_video(f"{video_url}")
+        filename = await download_media(url, media_type)
+        with open(filename, 'rb') as file:
+            if media_type == 'audio':
+                await callback_query.message.reply_audio(audio=file, caption=filename, parse_mode=enums.ParseMode.MARKDOWN)
             else:
-                await message.reply("No video found in the response. may be accountbis private.")
-        else:
-            await message.reply("Request was not successful.")
-    else:
-        await message.reply("Please provide a valid Instagram URL using the /reels command.")
+                await callback_query.message.reply_video(video=file, caption=filename, parse_mode=enums.ParseMode.MARKDOWN)
+        os.remove(filename)
+    except Exception as e:
+        await callback_query.message.edit_text(f"Error downloading {media_type}: {str(e)}", parse_mode=enums.ParseMode.MARKDOWN)
+    finally:
+        await callback_query.message.delete()
