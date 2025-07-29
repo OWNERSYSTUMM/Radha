@@ -1,14 +1,3 @@
-"""**                                                                      
-────────────────────────────────────────────────────────────────────────
-─SHIVANSH SHUKLA STRANGER─
-────────────────────────────────────────────────────────────────────────**"""
-
-
-
-
-
-
-
 from typing import Dict, Union
 
 from motor.motor_asyncio import AsyncIOMotorClient as MongoCli
