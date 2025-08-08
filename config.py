@@ -29,6 +29,13 @@ API_KEY = getenv("API_KEY", "ef4e80_qtqagWb9uWwn07HeeUsOFNeTqU2RN_Ej")
 # For - downloads
 DOWNLOADS_DIR = "downloads"
 
+# API URL - here
+YTPROXY_URL = getenv("API_URL", "https://tgapi.xbitcode.com")
+
+# API KEY - here
+YT_API_KEY = getenv("API_KEY", "xbit_VES4CLV6PZLICZ9CKLVZ71")
+
+
 # Limits and IDs
 DURATION_LIMIT_MIN = int(getenv("DURATION_LIMIT", 17000))
 LOGGER_ID = int(getenv("LOGGER_ID", -1002018556839))
