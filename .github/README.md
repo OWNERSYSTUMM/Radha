@@ -34,7 +34,7 @@
 </h3>
 
 
-<p align="center"><a href="https://dashboard.heroku.com/new?template=https://github.com/OWNERSYSTUMM/Radha"> <img src="https://img.shields.io/badge/Deploy%20On%20Heroku-00FFFF?style=for-the-badge&logo=heroku" width="220" height="220"/></a></p>
+<p align="center"><a href="https://dashboard.heroku.com/new?template=https://github.com/OWNERSYSTUMM/Radha"> <img src="https://img.shields.io/badge/Deploy%20On%20Heroku-00FFFF?style=for-the-badge&logo=heroku" width="220" height="60"/></a></p>
 
 # ⚙️ 𝗜𝗙 𝗬𝗢𝗨 𝗙𝗔𝗖𝗜𝗡𝗚 𝗔𝗡𝗬 𝗜𝗦𝗦𝗨𝗘 𝗧𝗛𝗘𝗡 𝗖𝗢𝗡𝗧𝗔𝗖𝗧
 
